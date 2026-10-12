@@ -1,6 +1,6 @@
 import networkx as nx
-from topology import load_topology, graph, domains, DATA_FILE_modified
-
+from topology import load_topology, graph, domains, DATA_FILE_modified, plot_topology
+from pathlib import Path
 
 graph_modified = load_topology(DATA_FILE_modified)
 
@@ -35,18 +35,18 @@ def link_disjoint_paths():
 link_disjoint_paths()
 
 
-
-def check_number(source, destination, pairs):
+def valid_nodepair(source, destination, pairs):
     i = 0
     for (src, dst) in pairs:
         i += 1
         if src == source and dst == destination:
             return i
+        
 
 source = 21 #"HSH Stord"
 destination = 56 #"HiF Alta"
 
-number = check_number(source, destination, possible_pairs)
+number = valid_nodepair(source, destination, possible_pairs)
 if number is not None:
     print("Parets nummer i possible pairs er: ", number)
 else:
@@ -59,12 +59,20 @@ primary_path = nx.shortest_path(
     target = destination
 )
 
-print("Primary path: ", primary_path)
-
 backup_path = nx.shortest_path(
     graph_modified,
     source = source,
     target = destination
 )
 
-print("Backup path: ", backup_path)
+def path_labels(path):
+    label_path = []
+    for p in path:
+        name = graph_modified.nodes[p]["label"]
+        label_path.append(name)
+    return label_path
+
+print("Primary path: ", path_labels(primary_path))
+print("Backup path: ", path_labels(backup_path))
+
+plot_topology(graph, output_file=Path("../topologies/path_comparison.png"), show_labels=True, primary_path=primary_path, backup_path=backup_path)

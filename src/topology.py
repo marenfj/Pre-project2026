@@ -52,6 +52,8 @@ def plot_topology(
     output_file: Path | None = DEFAULT_OUTPUT,
     show_labels: bool = False,
     seed: int = 2026,
+    primary_path: list[int] | None = None,
+    backup_path: list[int] | None = None,
 ) -> plt.Figure:
     """Plot mainland sites and merge visually overlapping geographic links."""
     positions = {
@@ -90,6 +92,40 @@ def plot_topology(
             list(segments), colors="#78909c", linewidths=1.15, alpha=0.65, zorder=1
         )
     )
+
+    def path_segments(path):
+        if path is None:
+            return []
+
+        return [
+            (positions[source], positions[target])
+            for source, target in zip(path, path[1:])
+            if source in positions and target in positions
+        ]
+
+    backup_segments = path_segments(backup_path)
+    if backup_segments:
+        axis.add_collection(
+            LineCollection(
+                backup_segments,
+                  colors="#86efac",       
+                  linewidths=4,
+                  alpha=0.9,
+                  zorder=1.5,
+            )
+        )
+
+    primary_segments = path_segments(primary_path)
+    if primary_path:
+        axis.add_collection(
+            LineCollection(
+                primary_segments,
+                  colors="#facc15",      
+                  linewidths=4,
+                  alpha=0.95,
+                  zorder=1.6,
+            )
+        )    
 
     for nodes, size, marker in ((sites, 30, "o"), (hubs, 82, "h")):
         for domain in ("A", "B"):
@@ -136,8 +172,11 @@ def plot_topology(
             Line2D([], [], marker="o", color="none", markerfacecolor=colors["A"], markeredgecolor="white", markersize=8, label="Operator A"),
             Line2D([], [], marker="o", color="none", markerfacecolor=colors["B"], markeredgecolor="white", markersize=8, label="Operator B"),
             Line2D([], [], marker="h", color="none", markerfacecolor="#6b7280", markeredgecolor="white", markersize=8, label="Network hub (4+ links)"),
+            Line2D([], [], color="#facc15", linewidth=4, label="Primary path"),
+            Line2D([], [], color="#86efac", linewidth=4, label="Backup path"),
         ],
-        loc="lower left",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
         frameon=True,
         facecolor="white",
         edgecolor="none",
