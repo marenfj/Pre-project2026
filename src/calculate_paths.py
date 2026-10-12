@@ -1,8 +1,7 @@
 import networkx as nx
-from topology import load_topology, graph, domains, DATA_FILE_modified, plot_topology
+from topology import graph_modified, graph, domains, plot_topology
 from pathlib import Path
 
-graph_modified = load_topology(DATA_FILE_modified)
 
 possible_pairs = []
 
@@ -72,7 +71,7 @@ def path_labels(path):
         label_path.append(name)
     return label_path
 
-print("Primary path: ", path_labels(primary_path))
-print("Backup path: ", path_labels(backup_path))
+# print("Primary path: ", path_labels(primary_path))
+# print("Backup path: ", path_labels(backup_path))
 
-plot_topology(graph, output_file=Path("../topologies/path_comparison.png"), show_labels=True, primary_path=primary_path, backup_path=backup_path)
+# plot_topology(graph, output_file=Path("../topologies/path_comparison.png"), show_labels=True, primary_path=primary_path, backup_path=backup_path)

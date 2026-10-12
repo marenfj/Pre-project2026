@@ -13,6 +13,7 @@ import argparse
 import math
 import sys
 from pathlib import Path
+from adjustText import adjust_text
 
 import matplotlib
 
@@ -197,7 +198,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=2026, help="Seed for the balanced graph partition")
     arguments = parser.parse_args()
 
-    figure = plot_topology(load_topology(), arguments.output, arguments.labels, arguments.seed)
+    figure = plot_topology(load_topology(DATA_FILE), arguments.output, arguments.labels, arguments.seed)
     print(f"Saved topology plot to {arguments.output}")
     if arguments.show:
         plt.show()
@@ -207,6 +208,7 @@ def main() -> None:
 
 #check if the graphs are connected
 graph = load_topology(DATA_FILE)
+graph_modified = load_topology(DATA_FILE_modified)
 domains = assign_operator_domains(graph)
 
 def check_graph_connectivity(graph, domains):
@@ -241,7 +243,135 @@ def find_border_nodes(graph, domains):
     return border_nodes
 
 
+def plot_border_nodes(graph, domains, show_labels=True):
+    # Finner alle border-noder med funksjonen du allerede har laget.
+    border_node_map = find_border_nodes(graph, domains)
+    all_border_nodes = set(border_node_map.keys())
+
+    # Behold bare border-noder på fastlands-Norge.
+    border_nodes = [
+        node
+        for node in all_border_nodes
+        if graph.nodes[node]["lon"] >= 0
+        and graph.nodes[node]["label"] != "Stockholm"
+    ]
+
+    positions = {
+        node: (
+            float(graph.nodes[node]["lon"]),
+            float(graph.nodes[node]["lat"]),
+        )
+        for node in border_nodes
+    }
+
+    # Tegn alle direkte lenker der begge nodene er border-noder.
+    border_edges = [
+        (source, target)
+        for source, target in graph.edges
+        if source in border_nodes and target in border_nodes
+    ]
+
+    colors = {
+        node: "#dc2626" if domains[node] == "A" else "#2563eb"
+        for node in border_nodes
+    }
+
+    fig, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
+    axis.set_facecolor("#edf5f8")
+
+    # Alle fastlandsnoder brukes bare for å tegne et svakt bakgrunnsnettverk.
+    mainland_positions = {
+        node: (
+            float(data["lon"]),
+            float(data["lat"]),
+        )
+        for node, data in graph.nodes(data=True)
+        if data["lon"] >= 0 and data["label"] != "Stockholm"
+    }
+
+    background_edges = [
+        (mainland_positions[source], mainland_positions[target])
+        for source, target in graph.edges
+        if source in mainland_positions
+        and target in mainland_positions
+        and mainland_positions[source] != mainland_positions[target]
+    ]
+
+    axis.add_collection(
+        LineCollection(
+            background_edges,
+            colors="#cbd5e1",  # svak grå bakgrunn
+            linewidths=0.8,
+            alpha=0.5,
+            zorder=1,
+        )
+    )
+
+    nx.draw_networkx_edges(
+        graph.edge_subgraph(border_edges),
+        positions,
+        ax=axis,
+        edge_color="#475569",
+        width=2.5,
+    )
+
+    nx.draw_networkx_nodes(
+        graph.subgraph(border_nodes),
+        positions,
+        ax=axis,
+        node_color=[colors[node] for node in border_nodes],
+        node_size=130,
+        edgecolors="white",
+        linewidths=1,
+    )
+
+    if show_labels:
+        labels = {
+            node: graph.nodes[node]["label"]
+            for node in border_nodes
+        }
+
+        texts = []
+
+        for node, label in labels.items():
+            x, y = positions[node]
+
+            text = axis.text(
+                x,
+                y,
+                label,
+                fontsize=7,
+                ha="center",
+                va="center",
+                zorder=4,
+            )
+
+            texts.append(text)
+
+        adjust_text(
+            texts,
+            ax=axis,
+            arrowprops={
+                "arrowstyle": "-",
+                "color": "#64748b",
+                "lw": 0.5,
+            },
+        )
+
+    axis.set_title("Border nodes between operator A and B")
+    axis.set_aspect(1 / math.cos(math.radians(62)), adjustable="box")
+    axis.set_axis_off()
+
+    return fig
+    
+
+
 if __name__ == "__main__":
     main()
     #check_graph_connectivity(graph, domains)
-    find_border_nodes(graph, domains)
+    #find_border_nodes(graph, domains)
+
+
+#print(find_border_nodes(graph, domains))
+figure = plot_border_nodes(graph, domains)
+figure.savefig("../topologies/border_nodes.png", dpi=240, bbox_inches="tight")
