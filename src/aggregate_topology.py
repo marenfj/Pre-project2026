@@ -1,5 +1,5 @@
 from topology import graph, domains, border_nodes
-from plotting import plot_border_paths
+from plotting import plot_border_paths, plot_topology
 from calculate_paths import source, destination, path_labels, case1_primary_path, case1_backup_path
 import networkx as nx
 import math
@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 from itertools import combinations
+from pathlib import Path
 
 def aggregate_domain(graph, domains, operator, border_nodes, information_level="weighted"):
 
@@ -372,14 +373,29 @@ except (nx.NetworkXNoPath, nx.NodeNotFound):
     
 
 
-figure = plot_border_paths(
+figure_case2 = plot_border_paths(
     graph,
     domains,
     border_nodes,
-    case1_primary_path,
-    case1_backup_path,
-    output_file="../topologies/border_path_comparison.png",
+    case2_abstract_primary,
+    case2_abstract_backup,
+    output_file="../topologies/case2_border_path_comparison.png",
 )
+
+figure_case3 = plot_border_paths(
+      graph,
+      domains,
+      border_nodes,
+      case3_abstract_primary,
+      case3_abstract_backup,
+      output_file="../topologies/case3_border_path_comparison.png",
+  )
+
+plot_topology(graph, domains, output_file=Path("../topologies/case2_border_path_comparison_physical.png"), show_labels=True, primary_path=case2_TA_primary, backup_path=case2_TA_backup)
+
+plot_topology(graph, domains, output_file=Path("../topologies/case3_border_path_comparison_physical.png"), show_labels=True, primary_path=case3_TA_primary, backup_path=case3_TA_backup)
+
+
 
 def path_edges(path):
     edges = set()

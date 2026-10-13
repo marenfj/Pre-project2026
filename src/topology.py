@@ -280,7 +280,6 @@ if __name__ == "__main__":
     #find_border_nodes(graph, domains)
     
 
-
 border_nodes = find_border_nodes(graph, domains)
 figure = plot_border_nodes(graph, domains, find_border_nodes(graph, domains), additional_nodes=[21, 56])
 figure.savefig("../topologies/border_nodes.png", dpi=240, bbox_inches="tight")

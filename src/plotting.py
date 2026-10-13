@@ -174,8 +174,8 @@ def plot_topology(
     sites = [node for node in positions if node not in hubs]
 
     figure, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
-    figure.patch.set_facecolor("#f7fafc")
-    axis.set_facecolor("#edf5f8")
+    figure.patch.set_facecolor("#FFFFFF")
+    axis.set_facecolor("#FFFFFF")
     axis.add_collection(
         LineCollection(
             _edge_segments(graph, positions),
@@ -256,7 +256,8 @@ def plot_border_nodes(
     ]
 
     figure, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
-    axis.set_facecolor("#edf5f8")
+    figure.patch.set_facecolor("#FFFFFF")
+    axis.set_facecolor("#FFFFFF")
     if show_background:
         _draw_background(axis, graph)
 
@@ -321,7 +322,8 @@ def plot_border_paths(
     positions = {node: (float(graph.nodes[node]["lon"]), float(graph.nodes[node]["lat"])) for node in nodes}
 
     figure, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
-    axis.set_facecolor("#edf5f8")
+    figure.patch.set_facecolor("#FFFFFF")
+    axis.set_facecolor("#FFFFFF")
     if show_background:
         _draw_background(axis, graph)
 
