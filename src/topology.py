@@ -35,17 +35,33 @@ def load_topology(data_file) -> nx.Graph:
     return nx.read_gml(data_file, label=None)
 
 
+def mainland_topology(graph: nx.Graph) -> nx.Graph:
+    """Return a copy containing only mainland-Norway nodes."""
+    mainland_nodes = [
+        node
+        for node, data in graph.nodes(data=True)
+        if float(data["lon"]) >= 0 and data["label"] != "Stockholm"
+    ]
+    return graph.subgraph(mainland_nodes).copy()
+
+
 def assign_operator_domains(graph: nx.Graph, seed: int = 2026) -> dict[object, str]:
     """Split the topology into two balanced, connected operator domains."""
-    first, second = nx.community.kernighan_lin_bisection(graph, seed=seed)
+    # Kernighan–Lin does not guarantee connected partitions.  Try subsequent
+    # deterministic seeds until both operator domains are connected.
+    for partition_seed in range(seed, seed + 100):
+        first, second = nx.community.kernighan_lin_bisection(
+            graph,
+            seed=partition_seed,
+        )
 
-    if not nx.is_connected(graph.subgraph(first)) or not nx.is_connected(graph.subgraph(second)):
-        raise ValueError("Could not create two connected operator domains")
+        if nx.is_connected(graph.subgraph(first)) and nx.is_connected(graph.subgraph(second)):
+            # Give the domain containing UiO a stable name, independent of set order.
+            if 0 not in first:
+                first, second = second, first
+            return {node: "A" if node in first else "B" for node in graph.nodes}
 
-    # Give the domain containing UiO a stable name, independent of set order.
-    if 0 not in first:
-        first, second = second, first
-    return {node: "A" if node in first else "B" for node in graph.nodes}
+    raise ValueError("Could not create two connected operator domains")
 
 
 # def plot_topology(
@@ -214,9 +230,16 @@ def main() -> None:
 
 
 #check if the graphs are connected
+# Assign domains on the original topology first.  This preserves the
+# partition produced by the configured seed.  Mainland filtering happens
+# afterwards and only removes nodes from the simulation/visualization.
 graph = load_topology(DATA_FILE)
 graph_modified = load_topology(DATA_FILE_modified)
 domains = assign_operator_domains(graph)
+
+graph = mainland_topology(graph)
+graph_modified = mainland_topology(graph_modified)
+domains = {node: domains[node] for node in graph.nodes}
 
 def check_graph_connectivity(graph, domains):
     a_nodes = [node for node, domain in domains.items() if domain == "A"]
@@ -261,4 +284,3 @@ if __name__ == "__main__":
 border_nodes = find_border_nodes(graph, domains)
 figure = plot_border_nodes(graph, domains, find_border_nodes(graph, domains), additional_nodes=[21, 56])
 figure.savefig("../topologies/border_nodes.png", dpi=240, bbox_inches="tight")
-
