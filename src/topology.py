@@ -8,7 +8,7 @@ Dependencies:
 """
 
 from __future__ import annotations
-
+from plotting import plot_topology, plot_border_nodes
 import argparse
 import math
 import sys
@@ -48,146 +48,146 @@ def assign_operator_domains(graph: nx.Graph, seed: int = 2026) -> dict[object, s
     return {node: "A" if node in first else "B" for node in graph.nodes}
 
 
-def plot_topology(
-    graph: nx.Graph,
-    output_file: Path | None = DEFAULT_OUTPUT,
-    show_labels: bool = False,
-    seed: int = 2026,
-    primary_path: list[int] | None = None,
-    backup_path: list[int] | None = None,
-) -> plt.Figure:
-    """Plot mainland sites and merge visually overlapping geographic links."""
-    positions = {
-        node: (float(data["lon"]), float(data["lat"]))
-        for node, data in graph.nodes(data=True)
-        # The original data places Svalbard at -8.72° / 70.92°, and also
-        # contains Stockholm as an external node.  Both are omitted from this
-        # mainland-Norway overview to keep its geography readable.
-        if data["lon"] >= 0 and data["label"] != "Stockholm"
-    }
+# def plot_topology(
+#     graph: nx.Graph,
+#     output_file: Path | None = DEFAULT_OUTPUT,
+#     show_labels: bool = False,
+#     seed: int = 2026,
+#     primary_path: list[int] | None = None,
+#     backup_path: list[int] | None = None,
+# ) -> plt.Figure:
+#     """Plot mainland sites and merge visually overlapping geographic links."""
+#     positions = {
+#         node: (float(data["lon"]), float(data["lat"]))
+#         for node, data in graph.nodes(data=True)
+#         # The original data places Svalbard at -8.72° / 70.92°, and also
+#         # contains Stockholm as an external node.  Both are omitted from this
+#         # mainland-Norway overview to keep its geography readable.
+#         if data["lon"] >= 0 and data["label"] != "Stockholm"
+#     }
 
-    # Multiple logical sites share coordinates.  One line per location pair is
-    # clearer than drawing zero-length loops and overlapping parallel routes.
-    segments = set()
-    for source, target in graph.edges():
-        if source in positions and target in positions:
-            start, end = positions[source], positions[target]
-            if start != end:
-                segments.add(tuple(sorted((start, end))))
+#     # Multiple logical sites share coordinates.  One line per location pair is
+#     # clearer than drawing zero-length loops and overlapping parallel routes.
+#     segments = set()
+#     for source, target in graph.edges():
+#         if source in positions and target in positions:
+#             start, end = positions[source], positions[target]
+#             if start != end:
+#                 segments.add(tuple(sorted((start, end))))
 
-    degrees = dict(graph.degree())
-    hubs = [node for node in positions if degrees[node] >= 4]
-    sites = [node for node in positions if node not in hubs]
-    domains = assign_operator_domains(graph, seed)
+#     degrees = dict(graph.degree())
+#     hubs = [node for node in positions if degrees[node] >= 4]
+#     sites = [node for node in positions if node not in hubs]
+#     domains = assign_operator_domains(graph, seed)
 
-    colors = {"A": "#dc2626", "B": "#2563eb"}
-    inter_domain_links = sum(
-        1 for source, target in graph.edges() if domains[source] != domains[target]
-    )
+#     colors = {"A": "#dc2626", "B": "#2563eb"}
+#     inter_domain_links = sum(
+#         1 for source, target in graph.edges() if domains[source] != domains[target]
+#     )
 
-    fig, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
-    fig.patch.set_facecolor("#f7fafc")
-    axis.set_facecolor("#edf5f8")
-    axis.add_collection(
-        LineCollection(
-            list(segments), colors="#78909c", linewidths=1.15, alpha=0.65, zorder=1
-        )
-    )
+#     fig, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
+#     fig.patch.set_facecolor("#f7fafc")
+#     axis.set_facecolor("#edf5f8")
+#     axis.add_collection(
+#         LineCollection(
+#             list(segments), colors="#78909c", linewidths=1.15, alpha=0.65, zorder=1
+#         )
+#     )
 
-    def path_segments(path):
-        if path is None:
-            return []
+#     def path_segments(path):
+#         if path is None:
+#             return []
 
-        return [
-            (positions[source], positions[target])
-            for source, target in zip(path, path[1:])
-            if source in positions and target in positions
-        ]
+#         return [
+#             (positions[source], positions[target])
+#             for source, target in zip(path, path[1:])
+#             if source in positions and target in positions
+#         ]
 
-    backup_segments = path_segments(backup_path)
-    if backup_segments:
-        axis.add_collection(
-            LineCollection(
-                backup_segments,
-                  colors="#86efac",       
-                  linewidths=4,
-                  alpha=0.9,
-                  zorder=1.5,
-            )
-        )
+#     backup_segments = path_segments(backup_path)
+#     if backup_segments:
+#         axis.add_collection(
+#             LineCollection(
+#                 backup_segments,
+#                   colors="#86efac",       
+#                   linewidths=4,
+#                   alpha=0.9,
+#                   zorder=1.5,
+#             )
+#         )
 
-    primary_segments = path_segments(primary_path)
-    if primary_path:
-        axis.add_collection(
-            LineCollection(
-                primary_segments,
-                  colors="#facc15",      
-                  linewidths=4,
-                  alpha=0.95,
-                  zorder=1.6,
-            )
-        )    
+#     primary_segments = path_segments(primary_path)
+#     if primary_path:
+#         axis.add_collection(
+#             LineCollection(
+#                 primary_segments,
+#                   colors="#facc15",      
+#                   linewidths=4,
+#                   alpha=0.95,
+#                   zorder=1.6,
+#             )
+#         )    
 
-    for nodes, size, marker in ((sites, 30, "o"), (hubs, 82, "h")):
-        for domain in ("A", "B"):
-            domain_nodes = [node for node in nodes if domains[node] == domain]
-            axis.scatter(
-                [positions[node][0] for node in domain_nodes],
-                [positions[node][1] for node in domain_nodes],
-                s=size,
-                color=colors[domain],
-                marker=marker,
-                edgecolors="white",
-                linewidths=0.7,
-                zorder=2,
-            )
+#     for nodes, size, marker in ((sites, 30, "o"), (hubs, 82, "h")):
+#         for domain in ("A", "B"):
+#             domain_nodes = [node for node in nodes if domains[node] == domain]
+#             axis.scatter(
+#                 [positions[node][0] for node in domain_nodes],
+#                 [positions[node][1] for node in domain_nodes],
+#                 s=size,
+#                 color=colors[domain],
+#                 marker=marker,
+#                 edgecolors="white",
+#                 linewidths=0.7,
+#                 zorder=2,
+#             )
 
-    if show_labels:
-        labels = {node: data["label"] for node, data in graph.nodes(data=True) if node in positions}
-        nx.draw_networkx_labels(
-            graph.subgraph(positions),
-            positions,
-            labels=labels,
-            ax=axis,
-            font_size=5,
-            font_color="#263238",
-            verticalalignment="bottom",
-        )
+#     if show_labels:
+#         labels = {node: data["label"] for node, data in graph.nodes(data=True) if node in positions}
+#         nx.draw_networkx_labels(
+#             graph.subgraph(positions),
+#             positions,
+#             labels=labels,
+#             ax=axis,
+#             font_size=5,
+#             font_color="#263238",
+#             verticalalignment="bottom",
+#         )
 
-    axis.set_title("UNINETT topology · mainland Norway", fontsize=16, weight="bold", pad=12)
-    axis.text(
-        0.5,
-        1.005,
-        f"Historic topology, 2011 · two connected domains · {inter_domain_links} inter-domain links",
-        transform=axis.transAxes,
-        ha="center",
-        va="bottom",
-        fontsize=8,
-        color="#52616b",
-    )
-    axis.set_aspect(1 / math.cos(math.radians(62)), adjustable="box")
-    axis.margins(x=0.08, y=0.045)
-    axis.set_axis_off()
-    axis.legend(
-        handles=[
-            Line2D([], [], marker="o", color="none", markerfacecolor=colors["A"], markeredgecolor="white", markersize=8, label="Operator A"),
-            Line2D([], [], marker="o", color="none", markerfacecolor=colors["B"], markeredgecolor="white", markersize=8, label="Operator B"),
-            Line2D([], [], marker="h", color="none", markerfacecolor="#6b7280", markeredgecolor="white", markersize=8, label="Network hub (4+ links)"),
-            Line2D([], [], color="#facc15", linewidth=4, label="Primary path"),
-            Line2D([], [], color="#86efac", linewidth=4, label="Backup path"),
-        ],
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=True,
-        facecolor="white",
-        edgecolor="none",
-        fontsize=8,
-    )
+#     axis.set_title("UNINETT topology · mainland Norway", fontsize=16, weight="bold", pad=12)
+#     axis.text(
+#         0.5,
+#         1.005,
+#         f"Historic topology, 2011 · two connected domains · {inter_domain_links} inter-domain links",
+#         transform=axis.transAxes,
+#         ha="center",
+#         va="bottom",
+#         fontsize=8,
+#         color="#52616b",
+#     )
+#     axis.set_aspect(1 / math.cos(math.radians(62)), adjustable="box")
+#     axis.margins(x=0.08, y=0.045)
+#     axis.set_axis_off()
+#     axis.legend(
+#         handles=[
+#             Line2D([], [], marker="o", color="none", markerfacecolor=colors["A"], markeredgecolor="white", markersize=8, label="Operator A"),
+#             Line2D([], [], marker="o", color="none", markerfacecolor=colors["B"], markeredgecolor="white", markersize=8, label="Operator B"),
+#             Line2D([], [], marker="h", color="none", markerfacecolor="#6b7280", markeredgecolor="white", markersize=8, label="Network hub (4+ links)"),
+#             Line2D([], [], color="#facc15", linewidth=4, label="Primary path"),
+#             Line2D([], [], color="#86efac", linewidth=4, label="Backup path"),
+#         ],
+#         loc="center left",
+#         bbox_to_anchor=(1.02, 0.5),
+#         frameon=True,
+#         facecolor="white",
+#         edgecolor="none",
+#         fontsize=8,
+#     )
 
-    if output_file is not None:
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_file, dpi=240, bbox_inches="tight")
-    return fig
+#     if output_file is not None:
+#         output_file.parent.mkdir(parents=True, exist_ok=True)
+#         fig.savefig(output_file, dpi=240, bbox_inches="tight")
+#     return fig
 
 
 def main() -> None:
@@ -198,7 +198,14 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=2026, help="Seed for the balanced graph partition")
     arguments = parser.parse_args()
 
-    figure = plot_topology(load_topology(DATA_FILE), arguments.output, arguments.labels, arguments.seed)
+    topology_graph = load_topology(DATA_FILE)
+    topology_domains = assign_operator_domains(topology_graph, arguments.seed)
+    figure = plot_topology(
+        topology_graph,
+        topology_domains,
+        output_file=arguments.output,
+        show_labels=arguments.labels,
+    )
     print(f"Saved topology plot to {arguments.output}")
     if arguments.show:
         plt.show()
@@ -243,143 +250,15 @@ def find_border_nodes(graph, domains):
     return border_nodes
 
 
-def plot_border_nodes(graph, domains, show_labels=True, additional_nodes=None,):
-    # Finner alle border-noder med funksjonen du allerede har laget.
-    border_node_map = find_border_nodes(graph, domains)
-    all_border_nodes = set(border_node_map.keys())
-
-    if additional_nodes is None:
-          additional_nodes = []
-
-    # Border-noder + noder du eksplisitt vil vise, for eksempel Stord og Alta.
-    visible_nodes = all_border_nodes | set(additional_nodes)
-
-    # Behold bare border-noder på fastlands-Norge.
-    mainland_nodes = [
-          node
-          for node in visible_nodes
-          if graph.nodes[node]["lon"] >= 0
-          and graph.nodes[node]["label"] != "Stockholm"
-    ]
-
-    positions = {
-        node: (
-            float(graph.nodes[node]["lon"]),
-            float(graph.nodes[node]["lat"]),
-        )
-        for node in mainland_nodes
-    }
-
-    # Tegn alle direkte lenker der begge nodene er border-noder.
-    border_edges = [
-        (source, target)
-        for source, target in graph.edges
-        if source in mainland_nodes and target in mainland_nodes
-    ]
-
-    colors = {
-        node: "#dc2626" if domains[node] == "A" else "#2563eb"
-        for node in mainland_nodes
-    }
-
-    fig, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
-    axis.set_facecolor("#edf5f8")
-
-    # Alle fastlandsnoder brukes bare for å tegne et svakt bakgrunnsnettverk.
-    mainland_positions = {
-        node: (
-            float(data["lon"]),
-            float(data["lat"]),
-        )
-        for node, data in graph.nodes(data=True)
-        if data["lon"] >= 0 and data["label"] != "Stockholm"
-    }
-
-    background_edges = [
-        (mainland_positions[source], mainland_positions[target])
-        for source, target in graph.edges
-        if source in mainland_positions
-        and target in mainland_positions
-        and mainland_positions[source] != mainland_positions[target]
-    ]
-
-    axis.add_collection(
-        LineCollection(
-            background_edges,
-            colors="#cbd5e1",  # svak grå bakgrunn
-            linewidths=0.8,
-            alpha=0.5,
-            zorder=1,
-        )
-    )
-
-    nx.draw_networkx_edges(
-        graph.edge_subgraph(border_edges),
-        positions,
-        ax=axis,
-        edge_color="#475569",
-        width=2.5,
-    )
-
-    nx.draw_networkx_nodes(
-        graph.subgraph(mainland_nodes),
-        positions,
-        ax=axis,
-        node_color=[colors[node] for node in mainland_nodes],
-        node_size=130,
-        edgecolors="white",
-        linewidths=1,
-    )
-
-    if show_labels:
-        labels = {
-            node: graph.nodes[node]["label"]
-            for node in mainland_nodes
-        }
-
-        texts = []
-
-        for node, label in labels.items():
-            x, y = positions[node]
-
-            text = axis.text(
-                x,
-                y,
-                label,
-                fontsize=7,
-                ha="center",
-                va="center",
-                zorder=4,
-            )
-
-            texts.append(text)
-
-        adjust_text(
-            texts,
-            ax=axis,
-            arrowprops={
-                "arrowstyle": "-",
-                "color": "#64748b",
-                "lw": 0.5,
-            },
-        )
-
-    axis.set_title("Border nodes between operator A and B")
-    axis.set_aspect(1 / math.cos(math.radians(62)), adjustable="box")
-    axis.set_axis_off()
-
-    return fig
-    
-
 
 if __name__ == "__main__":
     main()
     #check_graph_connectivity(graph, domains)
     #find_border_nodes(graph, domains)
+    
 
-
-#print(find_border_nodes(graph, domains))
 
 border_nodes = find_border_nodes(graph, domains)
-figure = plot_border_nodes(graph, domains, additional_nodes=[21, 56])
+figure = plot_border_nodes(graph, domains, find_border_nodes(graph, domains), additional_nodes=[21, 56])
 figure.savefig("../topologies/border_nodes.png", dpi=240, bbox_inches="tight")
+
