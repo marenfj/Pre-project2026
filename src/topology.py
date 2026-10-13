@@ -238,22 +238,28 @@ def find_border_nodes(graph, domains):
         neighbor_labels = [graph.nodes[neighbor]["label"] for neighbor in
         neighbors]
 
-        print(f"{node_label} (operatør {operator}) -> {neighbor_labels}")
+        #print(f"{node_label} (operatør {operator}) -> {neighbor_labels}")
 
     return border_nodes
 
 
-def plot_border_nodes(graph, domains, show_labels=True):
+def plot_border_nodes(graph, domains, show_labels=True, additional_nodes=None,):
     # Finner alle border-noder med funksjonen du allerede har laget.
     border_node_map = find_border_nodes(graph, domains)
     all_border_nodes = set(border_node_map.keys())
 
+    if additional_nodes is None:
+          additional_nodes = []
+
+    # Border-noder + noder du eksplisitt vil vise, for eksempel Stord og Alta.
+    visible_nodes = all_border_nodes | set(additional_nodes)
+
     # Behold bare border-noder på fastlands-Norge.
-    border_nodes = [
-        node
-        for node in all_border_nodes
-        if graph.nodes[node]["lon"] >= 0
-        and graph.nodes[node]["label"] != "Stockholm"
+    mainland_nodes = [
+          node
+          for node in visible_nodes
+          if graph.nodes[node]["lon"] >= 0
+          and graph.nodes[node]["label"] != "Stockholm"
     ]
 
     positions = {
@@ -261,19 +267,19 @@ def plot_border_nodes(graph, domains, show_labels=True):
             float(graph.nodes[node]["lon"]),
             float(graph.nodes[node]["lat"]),
         )
-        for node in border_nodes
+        for node in mainland_nodes
     }
 
     # Tegn alle direkte lenker der begge nodene er border-noder.
     border_edges = [
         (source, target)
         for source, target in graph.edges
-        if source in border_nodes and target in border_nodes
+        if source in mainland_nodes and target in mainland_nodes
     ]
 
     colors = {
         node: "#dc2626" if domains[node] == "A" else "#2563eb"
-        for node in border_nodes
+        for node in mainland_nodes
     }
 
     fig, axis = plt.subplots(figsize=(8, 12), constrained_layout=True)
@@ -316,10 +322,10 @@ def plot_border_nodes(graph, domains, show_labels=True):
     )
 
     nx.draw_networkx_nodes(
-        graph.subgraph(border_nodes),
+        graph.subgraph(mainland_nodes),
         positions,
         ax=axis,
-        node_color=[colors[node] for node in border_nodes],
+        node_color=[colors[node] for node in mainland_nodes],
         node_size=130,
         edgecolors="white",
         linewidths=1,
@@ -328,7 +334,7 @@ def plot_border_nodes(graph, domains, show_labels=True):
     if show_labels:
         labels = {
             node: graph.nodes[node]["label"]
-            for node in border_nodes
+            for node in mainland_nodes
         }
 
         texts = []
@@ -373,5 +379,7 @@ if __name__ == "__main__":
 
 
 #print(find_border_nodes(graph, domains))
-figure = plot_border_nodes(graph, domains)
+
+border_nodes = find_border_nodes(graph, domains)
+figure = plot_border_nodes(graph, domains, additional_nodes=[21, 56])
 figure.savefig("../topologies/border_nodes.png", dpi=240, bbox_inches="tight")
