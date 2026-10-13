@@ -1,8 +1,7 @@
 import networkx as nx
-from topology import load_topology, graph, domains, DATA_FILE_modified, plot_topology
+from topology import graph_modified, graph, domains, plot_topology
 from pathlib import Path
 
-graph_modified = load_topology(DATA_FILE_modified)
 
 possible_pairs = []
 
@@ -27,14 +26,12 @@ def link_disjoint_paths():
             )
             if len(paths) >= 2:
                 possible_pairs.append((source, destination))
-                #print(source, destination)
-                
 
     print("Pairs with at least two link-disjoint paths:", len(possible_pairs))
 
 link_disjoint_paths()
 
-
+#checks if nodepair is link-disjoint, and returns the number in the link-disjoint-list
 def valid_nodepair(source, destination, pairs):
     i = 0
     for (src, dst) in pairs:
@@ -53,13 +50,13 @@ else:
     print("Dette paret finnes ikke i possible pairs")
 
 
-primary_path = nx.shortest_path(
+case1_primary_path = nx.shortest_path(
     graph,
     source = source,
     target = destination
 )
 
-backup_path = nx.shortest_path(
+case1_backup_path = nx.shortest_path(
     graph_modified,
     source = source,
     target = destination
@@ -72,7 +69,7 @@ def path_labels(path):
         label_path.append(name)
     return label_path
 
-print("Primary path: ", path_labels(primary_path))
-print("Backup path: ", path_labels(backup_path))
+# print("Primary path: ", path_labels(primary_path))
+# print("Backup path: ", path_labels(backup_path))
 
-plot_topology(graph, output_file=Path("../topologies/path_comparison.png"), show_labels=True, primary_path=primary_path, backup_path=backup_path)
+plot_topology(graph, domains, output_file=Path("../topologies/path_comparison.png"), show_labels=True, primary_path=case1_primary_path, backup_path=case1_backup_path)
