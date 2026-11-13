@@ -80,7 +80,7 @@ def _draw_labels(
     graph: nx.Graph,
     nodes: Iterable[object],
     positions: Mapping[object, tuple[float, float]],
-    font_size: int = 7,
+    font_size: float = 7.5,
 ) -> None:
     """Draw non-overlapping labels with guide lines where needed."""
     texts = []
@@ -103,6 +103,13 @@ def _draw_labels(
         adjust_text(
             texts,
             ax=axis,
+            expand=(1.4, 1.7),
+            force_text=(1.2, 1.6),
+            force_static=(1.0, 1.4),
+            force_explode=(1.0, 1.2),
+            max_move=(100, 100),
+            ensure_inside_axes=True,
+            iter_lim=1000,
             arrowprops={"arrowstyle": "-", "color": "#64748b", "lw": 0.5},
         )
 
@@ -127,7 +134,7 @@ def _finish_figure(
             frameon=True,
             facecolor="white",
             edgecolor="none",
-            fontsize=8,
+            fontsize=12,
         )
 
     if output_file is not None:
@@ -213,7 +220,12 @@ def plot_topology(
             )
 
     if show_labels:
-        _draw_labels(axis, graph, positions.keys(), positions, font_size=5)
+        # On path comparison plots, label only nodes that occur in one of the
+        # highlighted paths.  This keeps unrelated site names out of the
+        # figure while preserving the full topology in the background.
+        path_nodes = set(primary_path or ()) | set(backup_path or ())
+        label_nodes = [node for node in positions if node in path_nodes]
+        _draw_labels(axis, graph, label_nodes, positions, font_size=7.5)
 
     handles = [
         Line2D([], [], marker="o", color="none", markerfacecolor=OPERATOR_COLORS["A"], markeredgecolor="white", markersize=8, label="Operator A"),

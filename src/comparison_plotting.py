@@ -116,7 +116,7 @@ for i, (case_name, paths) in enumerate(cases.items()):
 for path_name, color in colors.items():
     ax.plot([], [], color=color, linewidth=3, label=path_name)
 
-ax.legend(loc="upper left")
+ax.legend(loc="upper left", fontsize=12)
 
 ax.set_xticks(case_positions)
 ax.set_xticklabels(list(cases.keys()))
